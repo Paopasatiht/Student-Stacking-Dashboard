@@ -1,8 +1,23 @@
 # streamlit_app.py
 import pandas as pd
 import streamlit as st
-# from student_stacking import my_sql
 from PIL import Image
+import mysql.connector
+
+# Initialize connection.
+# Uses st.experimental_singleton to only run once.
+@st.experimental_singleton
+def init_connection():
+    return mysql.connector.connect(**st.secrets["mysql"])
+
+
+# Perform query.
+# Uses st.experimental_memo to only rerun when the query changes or after 10 min.
+@st.experimental_memo(ttl=600)
+def run_query(query):
+    with conn.cursor() as cur:
+        cur.execute(query)
+        return cur.fetchall()
 
 def homepage_layout():
     st.title("SQL Playground Adaptation")
@@ -19,24 +34,24 @@ def homepage_layout():
         # Column / Layout
         col1, col2 = st.columns(2)
 
-        # with col1:
-        #     with st.form(key="query_form"):
-        #         raw_code = st.text_area("SQL Code Here")
-        #         submit_code = st.form_submit_button("Execute")
-        #
-        #     if submit_code:
-        #         query_result = my_sql.run_query(raw_code)
-        #         # Result
-        #         with st.expander('Results'):
-        #             st.write(query_result)
-        #
-        # with col2:
-        #     if submit_code:
-        #         st.info("Query Submitted")
-        #         st.code(submit_code)
-        #         with st.expander("Cool Dataframe"):
-        #             query_df = pd.DataFrame(query_result)
-        #             st.dataframe(query_df)
+        with col1:
+            with st.form(key="query_form"):
+                raw_code = st.text_area("SQL Code Here")
+                submit_code = st.form_submit_button("Execute")
+
+            if submit_code:
+                query_result = run_query(raw_code)
+                # Result
+                with st.expander('Results'):
+                    st.write(query_result)
+
+        with col2:
+            if submit_code:
+                st.info("Query Submitted")
+                st.code(submit_code)
+                with st.expander("Cool Dataframe"):
+                    query_df = pd.DataFrame(query_result)
+                    st.dataframe(query_df)
 
     elif choice == "About us":
         st.subheader("About us")
@@ -80,7 +95,9 @@ def homepage_layout():
 
 if __name__ == '__main__':
     # conn = my_sql.init_connection()
+    conn = init_connection()
     homepage_layout()
+
 
 
 
